@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Космічний Енерго-Клікер</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Exo 2', sans-serif;
+            background-color: #050714;
+            color: #e0e6ed;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            overflow-x: hidden;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Glowing text & box effects */
+        .glow-cyan {
+            text-shadow: 0 0 10px rgba(6, 182, 212, 0.7), 0 0 20px rgba(6, 182, 212, 0.4);
+        }
+        .glow-purple {
+            text-shadow: 0 0 10px rgba(168, 85, 247, 0.7), 0 0 20px rgba(168, 85, 247, 0.4);
+        }
+        .glow-amber {
+            text-shadow: 0 0 10px rgba(245, 158, 11, 0.7), 0 0 20px rgba(245, 158, 11, 0.4);
+        }
+
+        .box-glow-cyan {
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+        }
+        .box-glow-purple {
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+        }
+
+        /* Animated Click Orb */
+        .orb-container {
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.08s ease-out;
+        }
+        .orb-container:active {
+            transform: scale(0.92);
+        }
+
+        .orb-core {
+            background: radial-gradient(circle at 30% 30%, #38bdf8, #818cf8, #4c1d95, #090d16);
+            box-shadow: 0 0 40px rgba(56, 189, 248, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.8);
+            animation: pulseOrb 4s infinite alternate ease-in-out;
+        }
+
+        @keyframes pulseOrb {
+            0% {
+                box-shadow: 0 0 30px rgba(56, 189, 248, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.6);
+            }
+            100% {
+                box-shadow: 0 0 60px rgba(168, 85, 247, 0.8), inset 0 0 25px rgba(255, 255, 255, 0.9);
+            }
+        }
+
+        /* Floating numbers animation */
+        .floating-num {
+            position: absolute;
+            pointer-events: none;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 800;
+            animation: floatUp 1s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+            z-index: 50;
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            50% {
+                transform: translate(-50%, -100px) scale(1.2);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -150px) scale(0.8);
+            }
+        }
+
+        /* Comet Event Animation */
+        .comet {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, #fde047 0%, #f97316 60%, transparent 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 20px #f59e0b, 0 0 40px #ef4444;
+            cursor: pointer;
+            z-index: 60;
+            animation: floatComet 12s linear infinite;
+        }
+
+        @keyframes floatComet {
+            0% { top: 10%; left: -10%; }
+            100% { top: 80%; left: 110%; }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(56, 189, 248, 0.6);
+        }
+
+        /* Tab active state styling */
+        .tab-btn.active {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(168, 85, 247, 0.2));
+            border-color: #38bdf8;
+            color: #ffffff;
+        }
+
+        /* Toast notification */
+        .toast {
+            animation: slideIn 0.3s ease, fadeOut 0.5s ease 2.5s forwards;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; visibility: hidden; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between relative bg-slate-950 text-slate-100 selection:bg-cyan-500 selection:text-black">
+    <canvas id="bgCanvas" class="fixed inset-0 pointer-events-none z-0"></canvas>
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="relative z-10 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 p-4 shadow-lg">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white shadow-lg box-glow-cyan">
+                    <i class="fa-solid font-bold text-xl fa-atom animate-spin" style="animation-duration: 10s;"></i>
+                </div>
+                <div>
+                    <h1 class="font-orbitron font-extrabold text-xl md:text-2xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-300 to-purple-400">
+                        КОСМО-КЛІКЕР
+                    </h1>
+                    <p class="text-xs text-slate-400">Версія 2.0 • Galactic Energy Corp</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3 text-sm">
+                <!-- Sound Toggle -->
+                <button id="soundToggle" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition flex items-center gap-2 border border-slate-700">
+                    <i id="soundIcon" class="fa-solid fa-volume-high text-cyan-400"></i>
+                    <span class="hidden sm:inline">Звук</span>
+                </button>
+                <!-- Quick Reset / Stats -->
+                <button onclick="switchTab('settings')" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition flex items-center gap-2 border border-slate-700">
+                    <i class="fa-solid fa-gear text-purple-400"></i>
+                    <span class="hidden sm:inline">Налаштування</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT GRID -->
+    <main class="relative z-10 max-w-7xl mx-auto w-full flex-1 p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- LEFT COLUMN: MAIN CLICKER AREA -->
+        <section class="lg:col-span-5 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-md rounded-2xl p-6 border border-slate-800/80 shadow-2xl relative overflow-hidden min-h-[420px]">
+            <!-- Frenzy Indicator -->
+            <div id="frenzyBanner" class="hidden absolute top-3 left-0 right-0 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-slate-950 font-orbitron font-extrabold text-xs py-1.5 text-center uppercase tracking-widest shadow-lg animate-pulse">
+                ⚡ Енергетичний Шторм! x2 До Всього! ⚡
+            </div>
+
+            <!-- Main Score Display -->
+            <div class="text-center mt-2 mb-6">
+                <div class="text-xs uppercase tracking-widest font-semibold text-cyan-400/80 mb-1">Накопичена Енергія</div>
+                <div class="flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-bolt text-amber-400 text-3xl md:text-4xl animate-bounce"></i>
+                    <span id="energyDisplay" class="font-orbitron font-black text-4xl md:text-5xl text-white tracking-tight glow-cyan">
+                        0
+                    </span>
+                </div>
+                <!-- Energy Per Second (CPS) -->
+                <div class="mt-2 text-sm text-slate-400 flex justify-center items-center gap-4">
+                    <span>Пасивний видобуток: <strong id="cpsDisplay" class="text-emerald-400 font-orbitron">0</strong> /сек</span>
+                    <span>•</span>
+                    <span>За клік: <strong id="cpcDisplay" class="text-cyan-400 font-orbitron">+1</strong></span>
+                </div>
+            </div>
+
+            <!-- Animated Interactive Orb Area -->
+            <div class="relative my-6 flex items-center justify-center w-full min-h-[220px]">
+                <div id="clickOrb" class="orb-container w-44 h-44 md:w-56 md:h-56 rounded-full flex items-center justify-center select-none">
+                    <div class="orb-core w-full h-full rounded-full flex items-center justify-center relative overflow-hidden">
+                        <!-- Internal glowing particles / effect -->
+                        <i class="fa-solid fa-atom text-7xl md:text-8xl text-white/30 animate-spin" style="animation-duration: 15s;"></i>
+                        <div class="absolute inset-0 bg-gradient-to-t from-cyan-500/20 to-transparent pointer-events-none"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mini Progress / Prestige Status -->
+            <div class="w-full mt-auto pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                <div class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-star text-amber-400"></i>
+                    <span>Зоряні Осколки: <strong id="fragmentsCount" class="text-amber-300 font-orbitron">0</strong></span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-chart-line text-indigo-400"></i>
+                    <span>Множник: <strong id="multiplierDisplay" class="text-indigo-300 font-orbitron">x1.0</strong></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: TABS & SHOP SYSTEM -->
+        <section class="lg:col-span-7 bg-slate-900/60 backdrop-blur-md rounded-2xl border border-slate-800/80 shadow-2xl flex flex-col overflow-hidden">
+            
+            <!-- Tab Headers -->
+            <div class="flex border-b border-slate-800 overflow-x-auto bg-slate-950/40 p-2 gap-2">
+                <button onclick="switchTab('upgrades')" id="tabBtn-upgrades" class="tab-btn active flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-2 whitespace-nowrap border border-transparent hover:bg-slate-800/60 text-slate-400">
+                    <i class="fa-solid fa-hand-pointer text-cyan-400"></i>
+                    <span>Клік</span>
+                </button>
+
+                <button onclick="switchTab('generators')" id="tabBtn-generators" class="tab-btn flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-2 whitespace-nowrap border border-transparent hover:bg-slate-800/60 text-slate-400">
+                    <i class="fa-solid fa-microchip text-emerald-400"></i>
+                    <span>Генератори</span>
+                </button>
+
+                <button onclick="switchTab('prestige')" id="tabBtn-prestige" class="tab-btn flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-2 whitespace-nowrap border border-transparent hover:bg-slate-800/60 text-slate-400">
+                    <i class="fa-solid fa-meteor text-amber-400"></i>
+                    <span>Престиж</span>
+                </button>
+
+                <button onclick="switchTab('achievements')" id="tabBtn-achievements" class="tab-btn flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-2 whitespace-nowrap border border-transparent hover:bg-slate-800/60 text-slate-400">
+                    <i class="fa-solid fa-trophy text-purple-400"></i>
+                    <span>Досягнення</span>
+                </button>
+            </div>
+
+            <!-- Tab Content Container -->
+            <div class="p-4 md:p-6 flex-1 overflow-y-auto max-h-[580px]">
+                
+                <!-- TAB 1: CLICK UPGRADES -->
+                <div id="tabContent-upgrades" class="space-y-3">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="font-orbitron font-bold text-lg text-cyan-300">Покращення Ручного Видобутку</h2>
+                        <span class="text-xs text-slate-400">Збільшують Енергію за кожен клік</span>
+                    </div>
+                    <div id="clickUpgradesList" class="space-y-3">
+                        <!-- Dynamic Click Upgrades generated by JS -->
+                    </div>
+                </div>
+
+                <!-- TAB 2: PASSIVE GENERATORS -->
+                <div id="tabContent-generators" class="hidden space-y-3">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="font-orbitron font-bold text-lg text-emerald-300">Автоматичні Генератори</h2>
+                        <span class="text-xs text-slate-400">Автоматично видобувають енергію щосекунди</span>
+                    </div>
+                    <div id="generatorsList" class="space-y-3">
+                        <!-- Dynamic Generators generated by JS -->
+                    </div>
+                </div>
+
+                <!-- TAB 3: PRESTIGE / REBIRTH -->
+                <div id="tabContent-prestige" class="hidden space-y-6">
+                    <div class="bg-gradient-to-br from-indigo-950/80 to-purple-950/80 border border-purple-500/30 rounded-xl p-6 text-center relative overflow-hidden">
+                        <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl text-purple-300">
+                            <i class="fa-solid fa-meteor"></i>
+                        </div>
+                        <i class="fa-solid fa-shuttle-space text-4xl text-purple-400 mb-3 block glow-purple"></i>
+                        <h2 class="font-orbitron font-extrabold text-2xl text-white mb-2">Переродження Всесвіту</h2>
+                        <p class="text-slate-300 text-sm max-w-md mx-auto mb-6">
+                            Скиньте вашу накопичену енергію, покращення та генератори, щоб отримати <strong class="text-amber-300">Зоряні Осколки (✦)</strong>. Кожен осколок надає постійний бонус <strong class="text-emerald-400">+5%</strong> до всього видобутку!
+                        </p>
+
+                        <div class="bg-slate-900/80 rounded-lg p-4 max-w-sm mx-auto mb-6 border border-slate-800">
+                            <div class="text-xs text-slate-400 mb-1">Отримаєте при Переродженні:</div>
+                            <div class="font-orbitron font-extrabold text-3xl text-amber-400 flex justify-center items-center gap-2">
+                                <i class="fa-solid fa-star"></i>
+                                <span id="pendingFragments">0</span>
+                            </div>
+                            <div id="prestigeRequirementText" class="text-xs text-slate-400 mt-2">
+                                Необхідно мінімум 1,000,000 загальної енергії
+                            </div>
+                        </div>
+
+                        <button id="prestigeBtn" onclick="triggerPrestige()" disabled class="w-full max-w-xs py-3.5 px-6 rounded-xl font-orbitron font-bold text-sm bg-gradient-to-r from-purple-600 to-indigo-600 opacity-50 cursor-not-allowed hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg transition duration-200">
+                            ВИКОНАТИ ПЕРЕРОДЖЕННЯ
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TAB 4: ACHIEVEMENTS -->
+                <div id="tabContent-achievements" class="hidden space-y-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="font-orbitron font-bold text-lg text-purple-300">Галактичні Досягнення</h2>
+                        <span id="achievementsProgress" class="text-xs font-orbitron text-purple-400">0 / 0</span>
+                    </div>
+                    <div id="achievementsList" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Dynamic Achievements -->
+                    </div>
+                </div>
+
+                <!-- TAB 5: SETTINGS & STATS -->
+                <div id="tabContent-settings" class="hidden space-y-6">
+                    <div class="bg-slate-950/60 rounded-xl p-5 border border-slate-800 space-y-4">
+                        <h3 class="font-orbitron font-bold text-md text-cyan-300 border-b border-slate-800 pb-2">
+                            <i class="fa-solid fa-chart-pie mr-2"></i>Статистика Гравця
+                        </h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
+                            <div class="bg-slate-900 p-3 rounded-lg border border-slate-800/80">
+                                <div class="text-slate-400">Всього зроблено кліків</div>
+                                <div id="statTotalClicks" class="font-orbitron text-lg font-bold text-white mt-1">0</div>
+                            </div>
+                            <div class="bg-slate-900 p-3 rounded-lg border border-slate-800/80">
+                                <div class="text-slate-400">Всього видобуто енергії</div>
+                                <div id="statTotalEnergy" class="font-orbitron text-lg font-bold text-amber-400 mt-1">0</div>
+                            </div>
+                            <div class="bg-slate-900 p-3 rounded-lg border border-slate-800/80">
+                                <div class="text-slate-400">Кількість перероджень</div>
+                                <div id="statPrestigecount" class="font-orbitron text-lg font-bold text-purple-400 mt-1">0</div>
+                            </div>
+                            <div class="bg-slate-900 p-3 rounded-lg border border-slate-800/80">
+                                <div class="text-slate-400">Спіймано комет</div>
+                                <div id="statCometsCaught" class="font-orbitron text-lg font-bold text-cyan-400 mt-1">0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/60 rounded-xl p-5 border border-slate-800 space-y-4">
+                        <h3 class="font-orbitron font-bold text-md text-indigo-300 border-b border-slate-800 pb-2">
+                            <i class="fa-solid fa-floppy-disk mr-2"></i>Управління Збереженням
+                        </h3>
+                        <div class="flex flex-wrap gap-3">
+                            <button onclick="saveGame(true)" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-xs font-bold transition text-white flex items-center gap-2">
+                                <i class="fa-solid fa-save"></i> Зберегти
+                            </button>
+                            <button onclick="exportSave()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-bold transition text-white flex items-center gap-2">
+                                <i class="fa-solid fa-download"></i> Експорт
+                            </button>
+                            <button onclick="importSave()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-bold transition text-white flex items-center gap-2">
+                                <i class="fa-solid fa-upload"></i> Імпорт
+                            </button>
+                            <button onclick="resetGamePrompt()" class="px-4 py-2 bg-rose-700 hover:bg-rose-600 rounded-lg text-xs font-bold transition text-white flex items-center gap-2">
+                                <i class="fa-solid fa-trash"></i> Скинути Прогрес
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="relative z-10 border-t border-slate-800/80 bg-slate-950/90 py-3 text-center text-xs text-slate-500">
+        <p>© 2026 Космічний Енерго-Клікер. Створено для розваг та відпочинку.</p>
+    </footer>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- GAME LOGIC SCRIPT -->
+    <script>
+        // --- GAME STATE ---
+        const gameState = {
+            energy: 0,
+            totalEnergyEarned: 0,
+            clickPower: 1,
+            totalClicks: 0,
+            starFragments: 0,
+            prestigeCount: 0,
+            cometsCaught: 0,
+            frenzyMultiplier: 1,
+            frenzyEndTime: 0,
+            soundEnabled: true,
+            
+            // Purchased Upgrades Levels
+            clickUpgrades: {},
+            generators: {},
+            achievementsUnlocked: {}
+        };
+
+        // --- UPGRADES DATA ---
+        const CLICK_UPGRADES = [
+            { id: 'laserFocus', name: 'Лазерний Фокус', baseCost: 15, powerBoost: 1, icon: 'fa-crosshairs', color: 'text-cyan-400' },
+            { id: 'photonAmp', name: 'Фотонний Посилювач', baseCost: 100, powerBoost: 5, icon: 'fa-bolt-lightning', color: 'text-yellow-400' },
+            { id: 'plasmaTouch', name: 'Плазмовий Дотик', baseCost: 1100, powerBoost: 25, icon: 'fa-hand-sparkles', color: 'text-purple-400' },
+            { id: 'antimatterGlove', name: 'Антиматеріальні Рукавиці', baseCost: 12000, powerBoost: 150, icon: 'fa-mitten', color: 'text-rose-400' },
+            { id: 'quantumImpulse', name: 'Квантовий Імпульс', baseCost: 130000, powerBoost: 800, icon: 'fa-wave-square', color: 'text-indigo-400' },
+            { id: 'gravitationalStrike', name: 'Гравітаційний Удар', baseCost: 1400000, powerBoost: 5000, icon: 'fa-meteor', color: 'text-amber-400' }
+        ];
+
+        const GENERATORS = [
+            { id: 'microDrone', name: 'Мікро-Дрон', baseCost: 15, baseCps: 0.5, icon: 'fa-robot', color: 'text-slate-300' },
+            { id: 'solarCollector', name: 'Сонячна Батарея', baseCost: 100, baseCps: 4, icon: 'fa-solar-panel', color: 'text-amber-400' },
+            { id: 'plasmaStation', name: 'Плазмова Станція', baseCost: 1100, baseCps: 32, icon: 'fa-industry', color: 'text-purple-400' },
+            { id: 'quantumGen', name: 'Квантовий Генератор', baseCost: 12000, baseCps: 260, icon: 'fa-atom', color: 'text-cyan-400' },
+            { id: 'orbitalSynth', name: 'Орбітальний Синтезатор', baseCost: 130000, baseCps: 1400, icon: 'fa-satellite', color: 'text-indigo-400' },
+            { id: 'dysonSphere', name: 'Сфера Дайсона', baseCost: 1400000, baseCps: 7800, icon: 'fa-globe', color: 'text-emerald-400' },
+            { id: 'singularityCore', name: 'Сингулярне Ядро', baseCost: 20000000, baseCps: 44000, icon: 'fa-circle-radiation', color: 'text-rose-500' }
+        ];
+
+        const ACHIEVEMENTS = [
+            { id: 'click1', name: 'Перша Іскра', desc: 'Зробіть свій перший клік', icon: 'fa-hand-pointer', condition: () => gameState.totalClicks >= 1 },
+            { id: 'click100', name: 'Заряджений', desc: 'Зробіть 100 кліків', icon: 'fa-hand-back-fist', condition: () => gameState.totalClicks >= 100 },
+            { id: 'energy1k', name: 'Енергетичний Магнат', desc: 'Накопичіть 1,000 Енергії', icon: 'fa-bolt', condition: () => gameState.totalEnergyEarned >= 1000 },
+            { id: 'energy1m', name: 'Володар Галактики', desc: 'Накопичіть 1,000,000 Енергії', icon: 'fa-crown', condition: () => gameState.totalEnergyEarned >= 1000000 },
+            { id: 'cometHunter', name: 'Мисливець за Кометами', desc: 'Спіймайте 5 космічних комет', icon: 'fa-meteor', condition: () => gameState.cometsCaught >= 5 },
+            { id: 'prestige1', name: 'Нова Ера', desc: 'Здійсніть перше Переродження', icon: 'fa-star', condition: () => gameState.prestigeCount >= 1 }
+        ];
+
+        // --- AUDIO SYSTEM (Web Audio API Synthesizer) ---
+        let audioCtx = null;
+
+        function playSound(type) {
+            if (!gameState.soundEnabled) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300 + Math.random() * 100, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.05);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'buy') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.12);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else if (type === 'comet') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.25);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                }
+            } catch (e) {
+                console.log("Audio not allowed yet");
+            }
+        }
+
+        // --- HELPER FUNCTIONS ---
+        function formatNumber(num) {
+            if (num < 1000) return num.toFixed(num % 1 === 0 ? 0 : 1);
+            const suffixes = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx'];
+            const i = Math.floor(Math.log10(num) / 3);
+            if (i >= suffixes.length) return num.toExponential(2);
+            return (num / Math.pow(10, i * 3)).toFixed(2) + ' ' + suffixes[i];
+        }
+
+        function calculateMultiplier() {
+            // Prestige Fragments (+5% per fragment) * Frenzy
+            const fragmentBonus = 1 + (gameState.starFragments * 0.05);
+            return fragmentBonus * gameState.frenzyMultiplier;
+        }
+
+        function calculateCPC() {
+            let baseCPC = gameState.clickPower;
+            CLICK_UPGRADES.forEach(upg => {
+                const count = gameState.clickUpgrades[upg.id] || 0;
+                baseCPC += count * upg.powerBoost;
+            });
+            return baseCPC * calculateMultiplier();
+        }
+
+        function calculateCPS() {
+            let totalCps = 0;
+            GENERATORS.forEach(gen => {
+                const count = gameState.generators[gen.id] || 0;
+                totalCps += count * gen.baseCps;
+            });
+            return totalCps * calculateMultiplier();
+        }
+
+        function getItemCost(baseCost, count) {
+            return Math.floor(baseCost * Math.pow(1.15, count));
+        }
+
+        // --- CORE GAMEPLAY LOGIC ---
+        function handleOrbClick(e) {
+            const cpc = calculateCPC();
+            gameState.energy += cpc;
+            gameState.totalEnergyEarned += cpc;
+            gameState.totalClicks++;
+
+            playSound('click');
+            createFloatingNumber(e, `+${formatNumber(cpc)}`);
+            checkAchievements();
+            updateUI();
+        }
+
+        function createFloatingNumber(e, text) {
+            const orb = document.getElementById('clickOrb');
+            const rect = orb.getBoundingClientRect();
+            
+            // Touch or Mouse position offset
+            const x = e.clientX ? e.clientX : (rect.left + rect.width / 2);
+            const y = e.clientY ? e.clientY : (rect.top + rect.height / 2);
+
+            const numEl = document.createElement('div');
+            numEl.className = 'floating-num text-cyan-300 font-extrabold text-lg md:text-xl drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]';
+            numEl.innerText = text;
+            numEl.style.left = `${x + (Math.random() * 40 - 20)}px`;
+            numEl.style.top = `${y + (Math.random() * 20 - 10)}px`;
+
+            document.body.appendChild(numEl);
+
+            setTimeout(() => {
+                numEl.remove();
+            }, 1000);
+        }
+
+        // --- BUYING LOGIC ---
+        function buyClickUpgrade(id) {
+            const upg = CLICK_UPGRADES.find(u => u.id === id);
+            if (!upg) return;
+            const currentLevel = gameState.clickUpgrades[id] || 0;
+            const cost = getItemCost(upg.baseCost, currentLevel);
+
+            if (gameState.energy >= cost) {
+                gameState.energy -= cost;
+                gameState.clickUpgrades[id] = currentLevel + 1;
+                playSound('buy');
+                showToast(`Придбано: ${upg.name}!`, 'success');
+                updateUI();
+            }
+        }
+
+        function buyGenerator(id) {
+            const gen = GENERATORS.find(g => g.id === id);
+            if (!gen) return;
+            const currentLevel = gameState.generators[id] || 0;
+            const cost = getItemCost(gen.baseCost, currentLevel);
+
+            if (gameState.energy >= cost) {
+                gameState.energy -= cost;
+                gameState.generators[id] = currentLevel + 1;
+                playSound('buy');
+                showToast(`Придбано: ${gen.name}!`, 'success');
+                updateUI();
+            }
+        }
+
+        // --- COMET / RANDOM EVENT SYSTEM ---
+        function spawnComet() {
+            if (document.querySelector('.comet')) return; // limit 1
+
+            const comet = document.createElement('div');
+            comet.className = 'comet flex items-center justify-center text-white text-xs font-bold';
+            comet.innerHTML = '<i class="fa-solid fa-bolt animate-spin"></i>';
+
+            comet.addEventListener('click', (e) => {
+                e.stopPropagation();
+                gameState.cometsCaught++;
+                playSound('comet');
+
+                // Reward: Instant CPS boost + Frenzy mode
+                const reward = Math.max(100, calculateCPS() * 20);
+                gameState.energy += reward;
+                gameState.totalEnergyEarned += reward;
+
+                // Trigger 12s Frenzy
+                gameState.frenzyMultiplier = 2;
+                gameState.frenzyEndTime = Date.now() + 12000;
+
+                showToast(`🔥 Комета спіймана! +${formatNumber(reward)} Енергії & 2x Шторм!`, 'warning');
+                createFloatingNumber(e, `+${formatNumber(reward)}!`);
+                
+                comet.remove();
+                updateUI();
+            });
+
+            document.body.appendChild(comet);
+
+            // Auto removal after animation ends
+            setTimeout(() => {
+                if (comet.parentNode) comet.remove();
+            }, 12000);
+        }
+
+        // --- PRESTIGE SYSTEM ---
+        function calculatePendingFragments() {
+            if (gameState.totalEnergyEarned < 1000000) return 0;
+            return Math.floor(Math.sqrt(gameState.totalEnergyEarned / 1000000) * 5);
+        }
+
+        function triggerPrestige() {
+            const pending = calculatePendingFragments();
+            if (pending <= 0) return;
+
+            gameState.starFragments += pending;
+            gameState.prestigeCount++;
+
+            // Reset progression variables
+            gameState.energy = 0;
+            gameState.clickUpgrades = {};
+            gameState.generators = {};
+
+            playSound('comet');
+            showToast(`✨ Ви Переродилися! Отримано ${pending} Зоряних Осколків!`, 'purple');
+            checkAchievements();
+            saveGame();
+            updateUI();
+        }
+
+        // --- ACHIEVEMENTS SYSTEM ---
+        function checkAchievements() {
+            ACHIEVEMENTS.forEach(ach => {
+                if (!gameState.achievementsUnlocked[ach.id] && ach.condition()) {
+                    gameState.achievementsUnlocked[ach.id] = true;
+                    showToast(`🏆 Досягнення: "${ach.name}"!`, 'achievement');
+                }
+            });
+        }
+
+        // --- UI RENDER & UPDATES ---
+        function renderShopLists() {
+            // Render Click Upgrades
+            const clickListEl = document.getElementById('clickUpgradesList');
+            clickListEl.innerHTML = CLICK_UPGRADES.map(upg => {
+                const count = gameState.clickUpgrades[upg.id] || 0;
+                const cost = getItemCost(upg.baseCost, count);
+                const canAfford = gameState.energy >= cost;
+
+                return `
+                    <div class="bg-slate-950/70 border ${canAfford ? 'border-cyan-500/40 hover:border-cyan-400' : 'border-slate-800'} rounded-xl p-3.5 flex items-center justify-between transition">
+                        <div class="flex items-center gap-3.5">
+                            <div class="w-11 h-11 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-xl ${upg.color}">
+                                <i class="fa-solid ${upg.icon}"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm text-slate-100">${upg.name} <span class="text-xs text-cyan-400 font-orbitron">lvl ${count}</span></div>
+                                <div class="text-xs text-slate-400">+${upg.powerBoost} за кожен клік</div>
+                            </div>
+                        </div>
+                        <button onclick="buyClickUpgrade('${upg.id}')" ${!canAfford ? 'disabled' : ''} class="px-4 py-2 rounded-lg text-xs font-orbitron font-bold transition flex items-center gap-1.5 ${canAfford ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg box-glow-cyan' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}">
+                            <i class="fa-solid fa-bolt"></i> ${formatNumber(cost)}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            // Render Generators
+            const genListEl = document.getElementById('generatorsList');
+            genListEl.innerHTML = GENERATORS.map(gen => {
+                const count = gameState.generators[gen.id] || 0;
+                const cost = getItemCost(gen.baseCost, count);
+                const canAfford = gameState.energy >= cost;
+
+                return `
+                    <div class="bg-slate-950/70 border ${canAfford ? 'border-emerald-500/40 hover:border-emerald-400' : 'border-slate-800'} rounded-xl p-3.5 flex items-center justify-between transition">
+                        <div class="flex items-center gap-3.5">
+                            <div class="w-11 h-11 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-xl ${gen.color}">
+                                <i class="fa-solid ${gen.icon}"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm text-slate-100">${gen.name} <span class="text-xs text-emerald-400 font-orbitron">x${count}</span></div>
+                                <div class="text-xs text-slate-400">+${formatNumber(gen.baseCps)} Енергії/сек</div>
+                            </div>
+                        </div>
+                        <button onclick="buyGenerator('${gen.id}')" ${!canAfford ? 'disabled' : ''} class="px-4 py-2 rounded-lg text-xs font-orbitron font-bold transition flex items-center gap-1.5 ${canAfford ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}">
+                            <i class="fa-solid fa-bolt"></i> ${formatNumber(cost)}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            // Render Achievements
+            const achListEl = document.getElementById('achievementsList');
+            let unlockedCount = 0;
+
+            achListEl.innerHTML = ACHIEVEMENTS.map(ach => {
+                const unlocked = !!gameState.achievementsUnlocked[ach.id];
+                if (unlocked) unlockedCount++;
+
+                return `
+                    <div class="p-3 rounded-xl border flex items-center gap-3 ${unlocked ? 'bg-purple-950/30 border-purple-500/40 text-purple-200' : 'bg-slate-950/40 border-slate-800 opacity-50'}">
+                        <div class="w-9 h-9 rounded-lg ${unlocked ? 'bg-purple-600/30 text-purple-300' : 'bg-slate-900 text-slate-600'} flex items-center justify-center text-base">
+                            <i class="fa-solid ${ach.icon}"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-xs ${unlocked ? 'text-white' : 'text-slate-400'}">${ach.name}</div>
+                            <div class="text-[11px] text-slate-400">${ach.desc}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('achievementsProgress').innerText = `${unlockedCount} / ${ACHIEVEMENTS.length}`;
+        }
+
+        function updateUI() {
+            // Main score & CPS displays
+            document.getElementById('energyDisplay').innerText = formatNumber(gameState.energy);
+            document.getElementById('cpsDisplay').innerText = formatNumber(calculateCPS());
+            document.getElementById('cpcDisplay').innerText = `+${formatNumber(calculateCPC())}`;
+
+            // Multiplier & fragments
+            document.getElementById('fragmentsCount').innerText = gameState.starFragments;
+            document.getElementById('multiplierDisplay').innerText = `x${calculateMultiplier().toFixed(1)}`;
+
+            // Prestige UI
+            const pending = calculatePendingFragments();
+            document.getElementById('pendingFragments').innerText = pending;
+            const prestigeBtn = document.getElementById('prestigeBtn');
+
+            if (pending > 0) {
+                prestigeBtn.disabled = false;
+                prestigeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                prestigeBtn.classList.add('animate-pulse');
+                document.getElementById('prestigeRequirementText').innerText = 'Готово до Переродження!';
+                document.getElementById('prestigeRequirementText').className = 'text-xs text-emerald-400 mt-2 font-bold';
+            } else {
+                prestigeBtn.disabled = true;
+                prestigeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                prestigeBtn.classList.remove('animate-pulse');
+                document.getElementById('prestigeRequirementText').innerText = 'Необхідно мінімум 1,000,000 загальної енергії';
+                document.getElementById('prestigeRequirementText').className = 'text-xs text-slate-400 mt-2';
+            }
+
+            // Stats UI
+            document.getElementById('statTotalClicks').innerText = gameState.totalClicks.toLocaleString();
+            document.getElementById('statTotalEnergy').innerText = formatNumber(gameState.totalEnergyEarned);
+            document.getElementById('statPrestigecount').innerText = gameState.prestigeCount;
+            document.getElementById('statCometsCaught').innerText = gameState.cometsCaught;
+
+            // Frenzy Banner Visibility
+            const frenzyBanner = document.getElementById('frenzyBanner');
+            if (Date.now() < gameState.frenzyEndTime) {
+                frenzyBanner.classList.remove('hidden');
+            } else {
+                gameState.frenzyMultiplier = 1;
+                frenzyBanner.classList.add('hidden');
+            }
+
+            renderShopLists();
+        }
+
+        // --- TABS SWITCHING ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('[id^="tabContent-"]').forEach(content => content.classList.add('hidden'));
+
+            const selectedBtn = document.getElementById(`tabBtn-${tabId}`);
+            if (selectedBtn) selectedBtn.classList.add('active');
+
+            const selectedContent = document.getElementById(`tabContent-${tabId}`);
+            if (selectedContent) selectedContent.classList.remove('hidden');
+        }
+
+        // --- TOAST NOTIFICATIONS ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+
+            let colors = 'bg-slate-900 border-slate-700 text-white';
+            if (type === 'success') colors = 'bg-emerald-950/90 border-emerald-500 text-emerald-200';
+            if (type === 'warning') colors = 'bg-amber-950/90 border-amber-500 text-amber-200';
+            if (type === 'purple') colors = 'bg-purple-950/90 border-purple-500 text-purple-200';
+            if (type === 'achievement') colors = 'bg-indigo-950/90 border-indigo-500 text-indigo-200 font-bold';
+
+            toast.className = `toast p-3.5 rounded-xl border text-xs shadow-2xl flex items-center gap-2 backdrop-blur-md ${colors}`;
+            toast.innerHTML = message;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // --- SAVE / LOAD SYSTEM ---
+        function saveGame(manual = false) {
+            try {
+                localStorage.setItem('cosmo_clicker_save', JSON.stringify(gameState));
+                if (manual) showToast('Гра успішно збережена!', 'success');
+            } catch (e) {
+                console.error("Save failed", e);
+            }
+        }
+
+        function loadGame() {
+            try {
+                const data = localStorage.getItem('cosmo_clicker_save');
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    Object.assign(gameState, parsed);
+                }
+            } catch (e) {
+                console.error("Load failed", e);
+            }
+        }
+
+        function exportSave() {
+            const str = btoa(JSON.stringify(gameState));
+            navigator.clipboard.writeText(str);
+            showToast('Код збереження скопійовано в буфер!', 'success');
+        }
+
+        function importSave() {
+            const code = prompt('Вставте код вашого збереження:');
+            if (code) {
+                try {
+                    const parsed = JSON.parse(atob(code));
+                    Object.assign(gameState, parsed);
+                    saveGame();
+                    updateUI();
+                    showToast('Збереження успішно імпортовано!', 'success');
+                } catch (e) {
+                    showToast('Помилка імпорту! Невірний код.', 'warning');
+                }
+            }
+        }
+
+        function resetGamePrompt() {
+            if (confirm('Ви впевнені, що хочете повністю скинути свій прогрес? Це дія незворотна!')) {
+                localStorage.removeItem('cosmo_clicker_save');
+                location.reload();
+            }
+        }
+
+        // --- BACKGROUND CANVAS PARTICLES ---
+        function initBgCanvas() {
+            const canvas = document.getElementById('bgCanvas');
+            const ctx = canvas.getContext('2d');
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            resize();
+            window.addEventListener('resize', resize);
+
+            const stars = Array.from({ length: 70 }, () => ({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                size: Math.random() * 2,
+                speed: Math.random() * 0.4 + 0.1,
+                opacity: Math.random()
+            }));
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                stars.forEach(star => {
+                    star.y -= star.speed;
+                    if (star.y < 0) star.y = canvas.height;
+
+                    ctx.fillStyle = `rgba(224, 230, 237, ${star.opacity})`;
+                    ctx.beginPath();
+                    ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        // --- GAME LOOP & INITIALIZATION ---
+        window.onload = function() {
+            loadGame();
+            initBgCanvas();
+
+            // Orb Click Event
+            const clickOrb = document.getElementById('clickOrb');
+            clickOrb.addEventListener('click', handleOrbClick);
+
+            // Sound Toggle Event
+            document.getElementById('soundToggle').addEventListener('click', () => {
+                gameState.soundEnabled = !gameState.soundEnabled;
+                const icon = document.getElementById('soundIcon');
+                icon.className = gameState.soundEnabled ? 'fa-solid fa-volume-high text-cyan-400' : 'fa-solid fa-volume-xmark text-slate-500';
+                showToast(gameState.soundEnabled ? 'Звук увімкнено' : 'Звук вимкнено', 'info');
+            });
+
+            // Ticker: Passive income every 100ms
+            setInterval(() => {
+                const cps = calculateCPS();
+                if (cps > 0) {
+                    const addAmount = cps / 10;
+                    gameState.energy += addAmount;
+                    gameState.totalEnergyEarned += addAmount;
+                    checkAchievements();
+                }
+                updateUI();
+            }, 100);
+
+            // Auto Save every 10s
+            setInterval(() => {
+                saveGame();
+            }, 10000);
+
+            // Comet Spawner every 45-90 seconds
+            setInterval(() => {
+                if (Math.random() < 0.4) {
+                    spawnComet();
+                }
+            }, 45000);
+
+            updateUI();
+        };
+    </script>
+</body>
+</html>
